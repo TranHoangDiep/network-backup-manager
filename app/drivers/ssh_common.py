@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import paramiko
 from cryptography.hazmat.primitives import hashes
 from netmiko import ConnectHandler
+from paramiko.kex_group14 import KexGroup14SHA256
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException, ReadTimeout
 
 from .base import (AuthenticationError, BaseDriver, ConfigResult, ConnectionFailedError,
@@ -19,13 +20,23 @@ from .base import (AuthenticationError, BaseDriver, ConfigResult, ConnectionFail
 
 log = logging.getLogger(__name__)
 
-# Old switches (e.g. Cisco SG/CBS) offer only an `ssh-rsa` (SHA-1) host key, which paramiko >= 5 dropped.
+# Old Cisco gear offers only SHA-1 algorithms (`ssh-rsa` host key, diffie-hellman-group14-sha1) that paramiko >= 5 dropped.
 # Re-enable it as the LAST preference; the key is still pinned (strict host key checking), so a forged
 # signature would not match the trusted key. ponytail: touches paramiko privates, recheck on paramiko upgrade.
 paramiko.RSAKey.HASHES = {**paramiko.RSAKey.HASHES, "ssh-rsa": hashes.SHA1}
 paramiko.Transport._key_info = {**paramiko.Transport._key_info, "ssh-rsa": paramiko.RSAKey}
 if "ssh-rsa" not in paramiko.Transport._preferred_keys:
     paramiko.Transport._preferred_keys = (*paramiko.Transport._preferred_keys, "ssh-rsa")
+
+
+class KexGroup14SHA1(KexGroup14SHA256):
+    name = "diffie-hellman-group14-sha1"
+    hash_algo = staticmethod(hashlib.sha1)
+
+
+if KexGroup14SHA1.name not in paramiko.Transport._kex_info:
+    paramiko.Transport._kex_info = {**paramiko.Transport._kex_info, KexGroup14SHA1.name: KexGroup14SHA1}
+    paramiko.Transport._preferred_kex = (*paramiko.Transport._preferred_kex, KexGroup14SHA1.name)
 
 
 def known_hosts_name(host: str, port: int) -> str:

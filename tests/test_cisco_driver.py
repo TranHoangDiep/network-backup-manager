@@ -232,3 +232,10 @@ def test_legacy_ssh_rsa_host_key_enabled_last():
     import paramiko
     assert paramiko.Transport._preferred_keys[-1] == "ssh-rsa" and "ssh-rsa" in paramiko.RSAKey.HASHES
     assert paramiko.Transport._preferred_keys.index("rsa-sha2-512") < paramiko.Transport._preferred_keys.index("ssh-rsa")
+
+
+def test_legacy_group14_sha1_kex_enabled_last():
+    import paramiko
+    kex = paramiko.Transport._preferred_kex
+    assert kex[-1] == "diffie-hellman-group14-sha1" and "diffie-hellman-group14-sha256" in kex
+    assert "diffie-hellman-group14-sha1" in paramiko.Transport._kex_info
