@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Backup Schedules / Policies</h1>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('settings.edit_policy') }}">Add policy</a>
+</div>
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>Name</th><th>Schedule</th><th>Config types</th><th>Retention</th><th>Enabled</th><th>Devices</th><th></th></tr></thead>
+  <tbody>
+  {% for p in policies %}
+    <tr><td>{{ p.name }}</td><td>{{ p.describe() }}</td><td>{{ p.config_types }}</td>
+      <td>{{ (p.retention_days ~ ' days') if p.retention_days else 'per device role' }}</td>
+      <td>{{ 'yes' if p.enabled else 'no' }}</td><td>{{ usage[p.id] }}</td>
+      <td class="text-end text-nowrap">
+        <form method="post" action="{{ url_for('settings.run_policy', policy_id=p.id) }}" class="d-inline" data-confirm="Queue backups for all {{ usage[p.id] }} device(s) now?">{{ csrf() }}
+          <button class="btn btn-sm btn-outline-primary" {{ 'disabled' if not usage[p.id] }}>Run now</button></form>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('settings.edit_policy', policy_id=p.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('settings.delete_policy', policy_id=p.id) }}" class="d-inline" data-confirm="Delete policy {{ p.name }}?">{{ csrf() }}
+          <button class="btn btn-sm btn-outline-danger" {{ 'disabled' if usage[p.id] }}>Delete</button></form></td></tr>
+  {% else %}<tr><td colspan="7" class="text-muted">No policies.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="small text-muted">The scheduler process reloads policies every minute. Concurrency, retries and timeouts are in <a href="{{ url_for('settings.general') }}">Settings</a>.</p>
+{% endblock %}

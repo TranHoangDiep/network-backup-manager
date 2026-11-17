@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, reach_badge, csrf %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Device Inventory</h1>
+  {% if can('device.manage') %}
+  <a class="btn btn-outline-secondary btn-sm me-2" href="{{ url_for('devices.import_csv') }}">Import CSV</a>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('devices.create') }}">Add device</a>
+  {% endif %}
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-3"><input class="form-control form-control-sm" name="q" placeholder="Search name / IP / hostname" value="{{ filters.get('q', '') }}"></div>
+  <div class="col-md-2"><select class="form-select form-select-sm" name="site_id">
+    <option value="">All sites</option>
+    {% for s in sites %}<option value="{{ s.id }}" {{ 'selected' if filters.get('site_id') == s.id|string }}>{{ s.name }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-2"><select class="form-select form-select-sm" name="vendor">
+    <option value="">All vendors</option>
+    {% for key, label in VENDORS.items() %}<option value="{{ key }}" {{ 'selected' if filters.get('vendor') == key }}>{{ label }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-2"><select class="form-select form-select-sm" name="status">
+    <option value="">Any status</option>
+    <option value="failed" {{ 'selected' if filters.get('status') == 'failed' }}>Last backup failed</option>
+    <option value="offline" {{ 'selected' if filters.get('status') == 'offline' }}>Offline</option>
+    <option value="disabled" {{ 'selected' if filters.get('status') == 'disabled' }}>Disabled</option>
+  </select></div>
+  <div class="col-md-1"><button class="btn btn-sm btn-outline-primary w-100">Filter</button></div>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover table-sm align-middle">
+  <thead class="table-light"><tr>
+    <th>Device</th><th>IP</th><th>Vendor / Platform</th><th>Method</th><th>Site</th><th>Last backup</th><th>Status</th><th>Reachability</th><th class="text-end">Actions</th>
+  </tr></thead>
+  <tbody>
+  {% for d in devices %}
+    <tr class="{{ 'table-secondary' if not d.enabled }}">
+      <td><a href="{{ url_for('devices.detail', device_id=d.id) }}">{{ d.name }}</a>
+        {% if not d.enabled %}<span class="badge text-bg-secondary">disabled</span>{% endif %}</td>
+      <td><code>{{ d.mgmt_ip }}</code></td>
+      <td>{{ VENDORS.get(d.vendor, d.vendor) }} <span class="text-muted small">{{ PLATFORMS.get(d.platform, {}).get('label', d.platform) }}</span></td>
+      <td>{{ d.connection_method|upper }}</td>
+      <td>{{ d.site.name }}</td>
+      <td>{{ d.last_backup_at|localdt("%Y-%m-%d %H:%M") }}</td>
+      <td>
+        {% if active.get(d.id) %}
+          <span class="badge text-bg-{{ badge(active[d.id].status) }}" data-job-id="{{ active[d.id].id }}">{{ active[d.id].status }}</span>
+        {% else %}{{ status_badge(d.last_backup_status) }}{% endif %}
+      </td>
+      <td>{{ reach_badge(d.reachable) }}</td>
+      <td class="text-end text-nowrap">
+        {% if can('backup.run') and d.enabled %}
+        <form method="post" action="{{ url_for('devices.backup_now', device_id=d.id) }}" class="d-inline">{{ csrf() }}
+          <button class="btn btn-sm {{ 'btn-warning' if d.last_backup_status == 'failed' else 'btn-outline-primary' }}">
+            {{ 'Retry' if d.last_backup_status == 'failed' else 'Backup' }}</button></form>
+        {% endif %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('backups.history', device_id=d.id) }}">History</a>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="text-muted">No devices found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

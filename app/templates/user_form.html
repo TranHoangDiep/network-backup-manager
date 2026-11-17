@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<h1 class="h4">{{ 'Edit user ' ~ user.username if user else 'Add user' }}</h1>
+<form method="post" class="row g-3 col-lg-6" autocomplete="off">
+  {{ csrf() }}
+  <div class="col-12"><label class="form-label">Username *</label>
+    <input class="form-control" name="username" required maxlength="64" value="{{ form.get('username') or '' }}"></div>
+  <div class="col-12"><label class="form-label">Role *</label>
+    <select class="form-select" name="role">
+      {% for name, description in roles.items() %}<option value="{{ name }}" {{ 'selected' if form.get('role') == name }}>{{ name }} &ndash; {{ description }}</option>{% endfor %}
+    </select></div>
+  <div class="col-12"><label class="form-label">{{ 'New password (blank = unchanged)' if user else 'Password *' }}</label>
+    <input class="form-control" type="password" name="password" autocomplete="new-password" minlength="{{ PW_MIN }}" {{ '' if user else 'required' }}>
+    <div class="form-text">Minimum {{ PW_MIN }} characters.</div></div>
+  <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="can_download" id="can_download" {{ 'checked' if form.get('can_download') }}>
+    <label class="form-check-label" for="can_download">Operator may download backups (admins always can)</label></div>
+  <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="active" id="active" {{ 'checked' if form.get('active') }}>
+    <label class="form-check-label" for="active">Active</label></div>
+  <div class="col-12"><button class="btn btn-primary">Save</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('settings.users') }}">Cancel</a></div>
+</form>
+{% endblock %}

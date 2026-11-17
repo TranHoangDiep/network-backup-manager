@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4">Configuration diff: {{ device.name }}</h1>
+<p class="small text-muted mb-2">{{ device.mgmt_ip }} &middot; {{ device.site.name }} &middot; {{ PLATFORMS.get(device.platform, {}).get('label', device.platform) }}</p>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <input type="hidden" name="device_id" value="{{ device.id }}">
+  <div class="col-md-4"><label class="form-label small">Older version</label>
+    <select class="form-select form-select-sm" name="a">
+      {% for v in versions %}<option value="{{ v.id }}" {{ 'selected' if (old and old.id == v.id) or (not old and loop.index == 2) }}>{{ v.created_at|localdt }} &middot; {{ v.config_type }} &middot; {{ (v.config_hash or '')[:8] }}{{ ' (changed)' if v.changed }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label small">Newer version</label>
+    <select class="form-select form-select-sm" name="b">
+      {% for v in versions %}<option value="{{ v.id }}" {{ 'selected' if (new and new.id == v.id) or (not new and loop.first) }}>{{ v.created_at|localdt }} &middot; {{ v.config_type }} &middot; {{ (v.config_hash or '')[:8] }}{{ ' (changed)' if v.changed }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4">
+    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="normalize" value="1" id="normalize" {{ 'checked' if normalized is not defined or normalized }}>
+      <label class="form-check-label small" for="normalize">Ignore dynamic lines</label></div>
+    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="full" value="1" id="full" {{ 'checked' if request.args.get('full') == '1' }}>
+      <label class="form-check-label small" for="full">Full file</label></div>
+    {% if raw_allowed %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="raw" value="1" id="raw" {{ 'checked' if request.args.get('raw') == '1' }}>
+      <label class="form-check-label small" for="raw">Unmasked</label></div>{% endif %}
+    <button class="btn btn-sm btn-primary">Compare</button>
+  </div>
+</form>
+
+{% if versions|length < 2 and not result %}<div class="alert alert-info">At least two successful backups are needed to compare.</div>{% endif %}
+
+{% if result %}
+<div class="d-flex gap-3 mb-2 small">
+  <span><strong>Old:</strong> {{ old.created_at|localdt }} ({{ old.config_type }})</span>
+  <span><strong>New:</strong> {{ new.created_at|localdt }} ({{ new.config_type }})</span>
+  <span class="text-success">+{{ result.added }}</span><span class="text-danger">-{{ result.removed }}</span>
+  {% if masked %}<span class="badge text-bg-warning">sensitive values masked</span>{% endif %}
+</div>
+{% if result.identical %}
+  <div class="alert alert-success">No differences{{ ' (after ignoring dynamic lines)' if normalized }}.</div>
+{% else %}
+<div class="table-responsive border rounded">
+<table class="table table-sm diff-table mb-0">
+  <tbody>
+  {% for row in result.rows %}
+    {% if row.kind == 'skip' %}
+      <tr class="diff-skip"><td></td><td></td><td>&hellip;</td></tr>
+    {% else %}
+      <tr class="diff-{{ row.kind }}"><td class="ln">{{ row.old_no or '' }}</td><td class="ln">{{ row.new_no or '' }}</td>
+        <td><span class="sign">{{ '+' if row.kind == 'add' else ('-' if row.kind == 'del' else ' ') }}</span>{{ row.text }}</td></tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

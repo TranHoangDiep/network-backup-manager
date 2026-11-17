@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<h1 class="h4">{{ 'Edit site ' ~ site.name if site else 'Add site' }}</h1>
+<form method="post" class="row g-3 col-lg-8">
+  {{ csrf() }}
+  <div class="col-md-6"><label class="form-label">Site name *</label>
+    <input class="form-control" name="name" required maxlength="64" value="{{ form.get('name') or '' }}" placeholder="HCM-DC"></div>
+  <div class="col-md-6"><label class="form-label">Timezone (IANA)</label>
+    <input class="form-control" name="timezone" value="{{ form.get('timezone') or 'UTC' }}" placeholder="Asia/Ho_Chi_Minh"></div>
+  <div class="col-md-6"><label class="form-label">Management subnet (CIDR)</label>
+    <input class="form-control" name="mgmt_subnet" value="{{ form.get('mgmt_subnet') or '' }}" placeholder="10.10.10.0/24">
+    <div class="form-text">Devices in this site must have their management IP inside this subnet.</div></div>
+  <div class="col-md-6"><label class="form-label">Status</label>
+    <select class="form-select" name="status">
+      <option value="active" {{ 'selected' if form.get('status') == 'active' }}>Active</option>
+      <option value="inactive" {{ 'selected' if form.get('status') == 'inactive' }}>Inactive (no scheduled backups)</option>
+    </select></div>
+  <div class="col-12"><label class="form-label">Description</label>
+    <input class="form-control" name="description" maxlength="255" value="{{ form.get('description') or '' }}"></div>
+  <div class="col-12"><button class="btn btn-primary">Save</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('sites.index') }}">Cancel</a></div>
+</form>
+{% endblock %}

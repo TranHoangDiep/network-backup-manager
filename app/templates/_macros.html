@@ -1,0 +1,31 @@
+{% macro status_badge(status) -%}
+<span class="badge text-bg-{{ badge(status) }}">{{ status or 'never' }}</span>
+{%- endmacro %}
+
+{% macro reach_badge(value) -%}
+{% if value is none %}<span class="badge text-bg-light">unknown</span>
+{% elif value %}<span class="badge text-bg-success">online</span>
+{% else %}<span class="badge text-bg-danger">offline</span>{% endif %}
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro pagination(page, endpoint) -%}
+{% if page.pages > 1 %}
+{% set params = request.args.to_dict() %}
+{% set _ = params.pop('page', None) %}
+<nav><ul class="pagination pagination-sm">
+  <li class="page-item {{ 'disabled' if not page.has_prev }}">
+    <a class="page-link" href="{{ url_for(endpoint, page=page.prev_num or 1, **params) }}">&laquo;</a></li>
+  {% for n in page.iter_pages() %}
+    {% if n %}
+    <li class="page-item {{ 'active' if n == page.page }}"><a class="page-link" href="{{ url_for(endpoint, page=n, **params) }}">{{ n }}</a></li>
+    {% else %}<li class="page-item disabled"><span class="page-link">&hellip;</span></li>{% endif %}
+  {% endfor %}
+  <li class="page-item {{ 'disabled' if not page.has_next }}">
+    <a class="page-link" href="{{ url_for(endpoint, page=page.next_num or page.pages, **params) }}">&raquo;</a></li>
+</ul></nav>
+{% endif %}
+{%- endmacro %}

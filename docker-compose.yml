@@ -1,0 +1,47 @@
+x-app: &app
+  build:
+    context: .
+    args:
+      APP_UID: ${APP_UID:-1000}
+      APP_GID: ${APP_GID:-1000}
+  image: network-backup-manager:latest
+  env_file: .env
+  volumes:
+    - ./data:/app/data   # SQLite DB, encrypted backups, logs, TLS certs
+    - ./keys:/app/keys   # Fernet key + Flask secret (back up separately!)
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  web:
+    <<: *app
+    command: ["web"]
+    ports:
+      - "${HTTPS_PORT:-8443}:8443"
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py", "web"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  scheduler:
+    <<: *app
+    command: ["scheduler"]
+    depends_on:
+      web:
+        condition: service_healthy   # web runs DB migrations first
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py", "scheduler"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

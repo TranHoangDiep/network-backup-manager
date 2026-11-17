@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="h5 mb-0 me-auto">{{ version.device.name }} &ndash; {{ version.config_type }} &ndash; {{ version.created_at|localdt }}</h1>
+  {% if masked %}<span class="badge text-bg-warning">sensitive values masked</span>{% else %}<span class="badge text-bg-danger">RAW (contains secrets)</span>{% endif %}
+  {% if raw_allowed %}
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('backups.view', version_id=version.id, raw=('0' if not masked else '1')) }}">{{ 'Show masked' if not masked else 'Show raw' }}</a>
+  {% endif %}
+  {% if can('backup.download') %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('backups.download', version_id=version.id) }}">Download</a>{% endif %}
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('backups.diff', device_id=version.device_id) }}">Compare</a>
+</div>
+<div class="small text-muted mb-2">SHA-256 <code>{{ version.config_hash }}</code> &middot; {{ version.file_size|filesize }} &middot; {{ version.backup_method|upper }}</div>
+<pre class="config-view border rounded p-2">{% for line in lines %}<span class="ln">{{ loop.index }}</span>{{ line }}
+{% endfor %}</pre>
+{% endblock %}

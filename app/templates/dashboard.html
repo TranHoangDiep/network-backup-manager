@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+  <div class="me-auto">
+    <h1 class="h4 mb-1">Dashboard</h1>
+    <div class="page-sub small">Backup status across all sites</div>
+  </div>
+  {% if stats.heartbeat_age is none or stats.heartbeat_age > 120 %}
+    <span class="status-pill"><span class="status-dot bad"></span>
+      Scheduler {{ 'never seen' if stats.heartbeat_age is none else 'silent for ' ~ stats.heartbeat_age ~ 's' }}</span>
+  {% else %}
+    <span class="status-pill"><span class="status-dot ok"></span>Scheduler running</span>
+  {% endif %}
+  {% if stats.active_jobs %}<span class="status-pill"><i class="bi bi-arrow-repeat text-primary"></i>{{ stats.active_jobs }} active job(s)</span>{% endif %}
+  {% if can('backup.run') %}<a class="btn btn-primary btn-sm" href="{{ url_for('devices.index') }}"><i class="bi bi-cloud-arrow-down me-1"></i>Run backups</a>{% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+  {% set cards = [
+    ("Devices", stats.total, stats.enabled ~ " enabled", "router", "indigo"),
+    ("Online", stats.online, "reachable at last contact", "wifi", "green"),
+    ("Offline", stats.offline, stats.unknown ~ " not checked yet", "wifi-off", "red"),
+    ("Successful (24h)", stats.success_24h, "backup jobs", "check2-circle", "green"),
+    ("Failed (24h)", stats.failed_24h, "backup jobs", "x-octagon", "red"),
+    ("Last backup", stats.last_backup|localdt("%d/%m %H:%M"), "most recent success", "clock", "sky"),
+  ] %}
+  {% for title, value, sub, icon, tone in cards %}
+  <div class="col-6 col-md-4 col-xxl-2">
+    <div class="card stat-card">
+      <div class="stat-icon tone-{{ tone }}"><i class="bi bi-{{ icon }}"></i></div>
+      <div class="min-w-0">
+        <div class="stat-label">{{ title }}</div>
+        <div class="stat-value">{{ value }}</div>
+        <div class="stat-sub text-truncate">{{ sub }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle text-warning me-2"></i>No successful backup in {{ stats.stale_hours }}h
+        <span class="badge text-bg-{{ 'warning' if stale else 'success' }} no-dot ms-auto">{{ stale|length }}</span>
+      </div>
+      {% if stale %}
+      <div class="table-responsive"><table class="table table-sm table-hover">
+        <thead><tr><th>Device</th><th>Site</th><th>Last success</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for d in stale %}
+          <tr><td><a class="fw-medium" href="{{ url_for('devices.detail', device_id=d.id) }}">{{ d.name }}</a></td>
+            <td>{{ d.site.name }}</td><td class="text-muted">{{ d.last_success_at|localdt }}</td><td>{{ status_badge(d.last_backup_status) }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-check-circle"></i>All enabled devices are up to date.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-file-diff text-primary me-2"></i>Recent configuration changes</div>
+      {% if recent_changes %}
+      <div class="table-responsive"><table class="table table-sm table-hover">
+        <thead><tr><th>Time</th><th>Device</th><th>Type</th><th>Change</th><th></th></tr></thead>
+        <tbody>
+        {% for v in recent_changes %}
+          <tr><td class="text-muted text-nowrap">{{ v.created_at|localdt("%d/%m %H:%M") }}</td><td class="fw-medium">{{ v.device.name }}</td>
+            <td><span class="badge text-bg-secondary no-dot">{{ v.config_type }}</span></td>
+            <td>{{ v.change_summary }}</td>
+            <td class="text-end">{% if can('config.view') %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('backups.diff', device_id=v.device_id) }}"><i class="bi bi-file-diff"></i></a>{% endif %}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-file-earmark-text"></i>No configuration changes recorded yet.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center"><i class="bi bi-activity text-primary me-2"></i>Recent activity
+        <a class="ms-auto small fw-normal" href="{{ url_for('backups.jobs') }}">View all jobs <i class="bi bi-arrow-right"></i></a></div>
+      {% if recent_jobs %}
+      <div class="table-responsive"><table class="table table-sm table-hover">
+        <thead><tr><th>#</th><th>Created</th><th>Device</th><th>Type</th><th>Trigger</th><th>Status</th><th>Message</th></tr></thead>
+        <tbody>
+        {% for j in recent_jobs %}
+          <tr><td class="text-muted">{{ j.id }}</td><td class="text-muted text-nowrap">{{ j.created_at|localdt("%d/%m %H:%M:%S") }}</td>
+            <td><a class="fw-medium" href="{{ url_for('devices.detail', device_id=j.device_id) }}">{{ j.device.name }}</a></td>
+            <td>{{ j.job_type }}</td><td><i class="bi bi-{{ 'person' if j.trigger == 'manual' else 'calendar-event' }} text-muted me-1"></i>{{ j.trigger }}</td>
+            <td>{{ status_badge(j.status) }}</td>
+            <td class="small"><span class="text-truncate msg-cell">{{ j.message or '' }}</span></td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-inbox"></i>No jobs yet. Add a device and click <strong>Backup Now</strong>.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

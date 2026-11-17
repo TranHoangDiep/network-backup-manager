@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, csrf %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Sites</h1>
+  {% if can('site.manage') %}<a class="btn btn-primary btn-sm" href="{{ url_for('sites.edit') }}">Add site</a>{% endif %}
+</div>
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>Name</th><th>Description</th><th>Management subnet</th><th>Timezone</th><th>Status</th><th>Devices</th><th></th></tr></thead>
+  <tbody>
+  {% for s in sites %}
+    <tr><td><a href="{{ url_for('devices.index', site_id=s.id) }}">{{ s.name }}</a></td><td>{{ s.description or '' }}</td>
+      <td><code>{{ s.mgmt_subnet or 'any (global allow-list)' }}</code></td><td>{{ s.timezone }}</td>
+      <td>{{ status_badge(s.status) }}</td><td>{{ counts[s.id] }}</td>
+      <td class="text-end text-nowrap">{% if can('site.manage') %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('sites.edit', site_id=s.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('sites.delete', site_id=s.id) }}" class="d-inline" data-confirm="Delete site {{ s.name }}?">{{ csrf() }}
+          <button class="btn btn-sm btn-outline-danger" {{ 'disabled' if counts[s.id] }}>Delete</button></form>
+      {% endif %}</td></tr>
+  {% else %}<tr><td colspan="7" class="text-muted">No sites yet. Create one before adding devices.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

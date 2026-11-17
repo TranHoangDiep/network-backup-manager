@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pagination %}
+{% block content %}
+<h1 class="h4">Jobs</h1>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-2"><select class="form-select form-select-sm" name="status">
+    <option value="">Any status</option>
+    {% for s in ['queued', 'running', 'success', 'partial', 'failed', 'interrupted'] %}
+      <option value="{{ s }}" {{ 'selected' if filters.get('status') == s }}>{{ s }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-1"><button class="btn btn-sm btn-outline-primary w-100">Filter</button></div>
+</form>
+<div class="table-responsive">
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>#</th><th>Created</th><th>Started</th><th>Finished</th><th>Device</th><th>Type</th><th>Trigger</th><th>By</th><th>Status</th><th>Try</th><th>Message</th></tr></thead>
+  <tbody>
+  {% for j in page.items %}
+    <tr><td>{{ j.id }}</td><td class="text-nowrap">{{ j.created_at|localdt }}</td><td class="text-nowrap">{{ j.started_at|localdt }}</td>
+      <td class="text-nowrap">{{ j.finished_at|localdt }}</td>
+      <td><a href="{{ url_for('devices.detail', device_id=j.device_id) }}">{{ j.device.name }}</a></td>
+      <td>{{ j.job_type }}</td><td>{{ j.trigger }}</td><td>{{ j.requested_by.username if j.requested_by else 'scheduler' }}</td>
+      <td><span class="badge text-bg-{{ badge(j.status) }}" {% if j.is_active %}data-job-id="{{ j.id }}"{% endif %}>{{ j.status }}</span></td>
+      <td>{{ j.attempt }}/{{ j.max_attempts }}</td><td class="small">{{ j.message or '' }}</td></tr>
+  {% else %}<tr><td colspan="11" class="text-muted">No jobs.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pagination(page, 'backups.jobs') }}
+{% endblock %}

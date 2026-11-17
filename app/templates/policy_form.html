@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<h1 class="h4">{{ 'Edit policy ' ~ policy.name if policy else 'Add policy' }}</h1>
+<form method="post" class="row g-3 col-lg-8" id="policy-form">
+  {{ csrf() }}
+  <div class="col-md-6"><label class="form-label">Name *</label>
+    <input class="form-control" name="name" required maxlength="64" value="{{ form.get('name') or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Schedule *</label>
+    <select class="form-select" name="schedule_type" id="schedule_type">
+      {% for key, label in schedule_types.items() %}<option value="{{ key }}" {{ 'selected' if form.get('schedule_type') == key }}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-3 sched sched-daily sched-weekly"><label class="form-label">Hour (0-23)</label>
+    <input class="form-control" name="hour" inputmode="numeric" value="{{ form.get('hour', 2) }}"></div>
+  <div class="col-md-3 sched sched-6h sched-12h sched-daily sched-weekly"><label class="form-label">Minute (0-59)</label>
+    <input class="form-control" name="minute" inputmode="numeric" value="{{ form.get('minute', 0) }}"></div>
+  <div class="col-md-3 sched sched-weekly"><label class="form-label">Day of week</label>
+    <select class="form-select" name="day_of_week">
+      {% for d in weekdays %}<option value="{{ d }}" {{ 'selected' if form.get('day_of_week') == d }}>{{ d }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-6 sched sched-cron"><label class="form-label">Cron expression</label>
+    <input class="form-control font-monospace" name="cron_expression" value="{{ form.get('cron_expression') or '' }}" placeholder="0 1 * * 1-5">
+    <div class="form-text">5 fields: minute hour day month weekday</div></div>
+  <div class="col-md-6"><label class="form-label">Timezone (IANA)</label>
+    <input class="form-control" name="timezone" value="{{ form.get('timezone') or 'UTC' }}"></div>
+  <div class="col-md-6"><label class="form-label">Retention override (days)</label>
+    <input class="form-control" name="retention_days" inputmode="numeric" value="{{ form.get('retention_days') or '' }}" placeholder="blank = per device role">
+  </div>
+  <div class="col-12"><label class="form-label">Configuration types</label>
+    <div class="form-check"><input class="form-check-input" type="checkbox" name="type_running" id="type_running" checked disabled>
+      <label class="form-check-label" for="type_running">running (always)</label></div>
+    <div class="form-check"><input class="form-check-input" type="checkbox" name="type_startup" id="type_startup" {{ 'checked' if form.get('type_startup') }}>
+      <label class="form-check-label" for="type_startup">startup (Cisco / Aruba only; ignored for FortiGate)</label></div></div>
+  <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="enabled" id="enabled" {{ 'checked' if form.get('enabled') }}>
+    <label class="form-check-label" for="enabled">Enabled</label></div>
+  <div class="col-12"><button class="btn btn-primary">Save</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('settings.policies') }}">Cancel</a></div>
+</form>
+{% endblock %}

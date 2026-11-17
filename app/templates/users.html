@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Users</h1>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('settings.edit_user') }}">Add user</a>
+</div>
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>Username</th><th>Role</th><th>Download</th><th>Active</th><th>Last login</th><th>Locked until</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr><td>{{ u.username }}</td><td>{{ u.role_name }}</td>
+      <td>{{ 'yes' if u.role_name == 'admin' or (u.role_name == 'operator' and u.can_download) else 'no' }}</td>
+      <td>{{ 'yes' if u.active else 'no' }}</td><td>{{ u.last_login_at|localdt }}</td><td>{{ u.locked_until|localdt }}</td>
+      <td class="text-end text-nowrap">
+        {% if u.locked_until %}<form method="post" action="{{ url_for('settings.unlock_user', user_id=u.id) }}" class="d-inline">{{ csrf() }}
+          <button class="btn btn-sm btn-outline-warning">Unlock</button></form>{% endif %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('settings.edit_user', user_id=u.id) }}">Edit</a></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="small text-muted">Deactivate users instead of deleting them so the audit trail stays attributable.</p>
+{% endblock %}

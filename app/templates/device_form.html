@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<h1 class="h4">{{ 'Edit device ' ~ device.name if device else 'Add device' }}</h1>
+<form method="post" class="row g-3" id="device-form">
+  {{ csrf() }}
+  <div class="col-md-4"><label class="form-label">Device name *</label>
+    <input class="form-control" name="name" required maxlength="64" value="{{ form.get('name') or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Hostname (FQDN, informational)</label>
+    <input class="form-control" name="hostname" maxlength="253" value="{{ form.get('hostname') or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Management IP *</label>
+    <input class="form-control" name="mgmt_ip" required maxlength="45" value="{{ form.get('mgmt_ip') or '' }}"></div>
+
+  <div class="col-md-4"><label class="form-label">Site *</label>
+    <select class="form-select" name="site_id" required>
+      <option value="">-- select --</option>
+      {% for s in sites %}<option value="{{ s.id }}" {{ 'selected' if form.get('site_id')|string == s.id|string }}>{{ s.name }}{% if s.mgmt_subnet %} ({{ s.mgmt_subnet }}){% endif %}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Vendor *</label>
+    <select class="form-select" name="vendor" id="vendor" required>
+      {% for key, label in VENDORS.items() %}<option value="{{ key }}" {{ 'selected' if form.get('vendor') == key }}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Platform *</label>
+    <select class="form-select" name="platform" id="platform" required>
+      {% for key, p in PLATFORMS.items() %}
+      <option value="{{ key }}" data-vendor="{{ p.vendor }}" data-methods="{{ p.methods.keys()|join(',') }}"
+              {{ 'selected' if form.get('platform') == key }}>{{ p.label }}</option>
+      {% endfor %}
+    </select></div>
+
+  <div class="col-md-4"><label class="form-label">Connection method *</label>
+    <select class="form-select" name="connection_method" id="connection_method" required>
+      <option value="ssh" {{ 'selected' if form.get('connection_method', 'ssh') == 'ssh' }}>SSH</option>
+      <option value="api" {{ 'selected' if form.get('connection_method') == 'api' }}>REST API</option>
+    </select></div>
+  <div class="col-md-4"><label class="form-label">Credential profile *</label>
+    <select class="form-select" name="credential_id" id="credential_id" required>
+      <option value="">-- select --</option>
+      {% for c in credentials %}
+      <option value="{{ c.id }}" data-type="{{ c.cred_type }}" data-api-port="{{ c.api_port }}"
+              {{ 'selected' if form.get('credential_id')|string == c.id|string }}>{{ c.name }} ({{ c.cred_type|upper }})</option>
+      {% endfor %}
+    </select>
+    <div class="form-text">Only profiles matching the connection method are shown.</div></div>
+  <div class="col-md-4"><label class="form-label">Management port</label>
+    <input class="form-control" name="port" id="port" inputmode="numeric" value="{{ form.get('port') or '' }}" placeholder="default">
+    <div class="form-text">Blank = 22 for SSH, profile API port for API.</div></div>
+
+  <div class="col-md-4"><label class="form-label">Device role *</label>
+    <select class="form-select" name="device_role">
+      {% for key, label in DEVICE_ROLES.items() %}<option value="{{ key }}" {{ 'selected' if form.get('device_role') == key }}>{{ label }}</option>{% endfor %}
+    </select><div class="form-text">Determines the default retention period.</div></div>
+  <div class="col-md-4"><label class="form-label">Backup schedule</label>
+    <select class="form-select" name="policy_id">
+      <option value="">Manual only</option>
+      {% for p in policies %}<option value="{{ p.id }}" {{ 'selected' if form.get('policy_id')|string == p.id|string }}>{{ p.name }} &ndash; {{ p.describe() }}{{ '' if p.enabled else ' [disabled]' }}</option>{% endfor %}
+    </select></div>
+  <div class="col-md-4" id="vdom-group"><label class="form-label">FortiGate VDOM (API only)</label>
+    <input class="form-control" name="vdom" maxlength="31" value="{{ form.get('vdom') or '' }}" placeholder="blank = global scope"></div>
+
+  <div class="col-12"><label class="form-label">Description</label>
+    <textarea class="form-control" name="description" rows="2" maxlength="500">{{ form.get('description') or '' }}</textarea></div>
+  <div class="col-12 form-check ms-2">
+    <input class="form-check-input" type="checkbox" name="enabled" id="enabled" {{ 'checked' if form.get('enabled') }}>
+    <label class="form-check-label" for="enabled">Enabled (included in scheduled backups)</label></div>
+  <div class="col-12">
+    <button class="btn btn-primary">Save</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('devices.detail', device_id=device.id) if device else url_for('devices.index') }}">Cancel</a>
+    <span class="text-muted small ms-3">After saving, use <strong>Test Connection</strong> on the device page.</span>
+  </div>
+</form>
+{% endblock %}

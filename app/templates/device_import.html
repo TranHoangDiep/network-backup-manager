@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<h1 class="h4">Import devices from CSV</h1>
+<p class="text-muted">Columns: <code>{{ fields|join(',') }}</code>. Sites, credential profiles and policies are referenced by name and must exist.
+The import is all-or-nothing: if any row is invalid, nothing is imported.
+<a href="{{ url_for('devices.import_template') }}">Download template</a>.</p>
+{% if errors %}
+<div class="alert alert-danger"><strong>Nothing imported. Fix these rows:</strong>
+  <ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="col-md-6">
+  {{ csrf() }}
+  <input class="form-control mb-3" type="file" name="file" accept=".csv,text/csv" required>
+  <button class="btn btn-primary">Import</button>
+  <a class="btn btn-outline-secondary" href="{{ url_for('devices.index') }}">Cancel</a>
+</form>
+{% endblock %}

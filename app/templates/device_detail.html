@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, reach_badge, csrf %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0 me-auto">{{ device.name }} {% if not device.enabled %}<span class="badge text-bg-secondary">disabled</span>{% endif %}</h1>
+  {% if can('backup.run') and device.enabled %}
+  <form method="post" action="{{ url_for('devices.test_connection', device_id=device.id) }}">{{ csrf() }}
+    <button class="btn btn-outline-primary btn-sm">Test Connection</button></form>
+  <form method="post" action="{{ url_for('devices.backup_now', device_id=device.id) }}">{{ csrf() }}
+    <button class="btn btn-primary btn-sm">Backup Now</button></form>
+  {% endif %}
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('backups.history', device_id=device.id) }}">History</a>
+  {% if can('config.view') %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('backups.diff', device_id=device.id) }}">Compare</a>{% endif %}
+  {% if can('device.manage') %}
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('devices.edit', device_id=device.id) }}">Edit</a>
+  <form method="post" action="{{ url_for('devices.toggle', device_id=device.id) }}">{{ csrf() }}
+    <button class="btn btn-outline-warning btn-sm">{{ 'Disable' if device.enabled else 'Enable' }}</button></form>
+  {% endif %}
+</div>
+
+{% if watch_job %}
+<div class="alert alert-info d-flex align-items-center" id="job-panel">
+  <span class="me-2">Job #{{ watch_job }}:</span>
+  <span class="badge text-bg-info me-2" data-job-id="{{ watch_job }}" data-reload="1">queued</span>
+  <span class="small" data-job-message="{{ watch_job }}">Waiting for the worker&hellip;</span>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header">Device</div>
+      <table class="table table-sm mb-0">
+        <tr><th>Management IP</th><td><code>{{ device.mgmt_ip }}:{{ device.effective_port() }}</code></td></tr>
+        <tr><th>Hostname</th><td>{{ device.hostname or '-' }}</td></tr>
+        <tr><th>Site</th><td>{{ device.site.name }}</td></tr>
+        <tr><th>Vendor / Platform</th><td>{{ VENDORS.get(device.vendor) }} / {{ PLATFORMS.get(device.platform, {}).get('label', device.platform) }}</td></tr>
+        <tr><th>Method</th><td>{{ device.connection_method|upper }}{% if device.vdom %} (VDOM {{ device.vdom }}){% endif %}</td></tr>
+        <tr><th>Credential</th><td>{{ device.credential.name if device.credential else '-' }}</td></tr>
+        <tr><th>Schedule</th><td>{{ device.policy.name ~ ' - ' ~ device.policy.describe() if device.policy else 'Manual only' }}</td></tr>
+        <tr><th>Role</th><td>{{ DEVICE_ROLES.get(device.device_role) }}</td></tr>
+        <tr><th>Reachability</th><td>{{ reach_badge(device.reachable) }} <span class="small text-muted">{{ device.last_seen_at|localdt }}</span></td></tr>
+        <tr><th>Last backup</th><td>{{ status_badge(device.last_backup_status) }} {{ device.last_backup_at|localdt }}</td></tr>
+        <tr><th>Last success</th><td>{{ device.last_success_at|localdt }}</td></tr>
+        {% if device.last_error %}<tr><th>Last error</th><td class="text-danger small">{{ device.last_error }}</td></tr>{% endif %}
+        {% if device.description %}<tr><th>Description</th><td>{{ device.description }}</td></tr>{% endif %}
+      </table>
+    </div>
+
+    {% if device.connection_method == 'ssh' %}
+    <div class="card mb-3"><div class="card-header">SSH host key</div>
+      <div class="card-body small">
+        {% if trusted_fp %}
+          <div>Trusted: <code>{{ device.ssh_host_key_type }} {{ trusted_fp }}</code></div>
+        {% else %}
+          <div class="text-warning">No trusted host key. Backups are blocked until a key is trusted.</div>
+        {% endif %}
+        {% if pending_fp %}
+          <div class="alert alert-warning mt-2 mb-2">
+            Pending key: <code>{{ device.pending_host_key_type }} {{ pending_fp }}</code><br>
+            Verify this fingerprint on the device console (e.g. <code>show crypto key mypubkey</code> / <code>show ssh server</code>) before trusting it.
+          </div>
+          {% if can('hostkey.manage') %}
+          <form method="post" action="{{ url_for('devices.trust_host_key', device_id=device.id) }}" class="d-inline" data-confirm="Trust host key {{ pending_fp }}?">
+            {{ csrf() }}<input type="hidden" name="fingerprint" value="{{ pending_fp }}">
+            <button class="btn btn-sm btn-warning">Trust this key</button></form>
+          {% endif %}
+        {% endif %}
+        {% if can('hostkey.manage') and (trusted_fp or pending_fp) %}
+          <form method="post" action="{{ url_for('devices.forget_host_key', device_id=device.id) }}" class="d-inline" data-confirm="Remove stored host keys?">
+            {{ csrf() }}<button class="btn btn-sm btn-outline-danger">Forget keys</button></form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if can('device.manage') %}
+    <div class="card border-danger"><div class="card-header text-danger">Delete device</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('devices.delete', device_id=device.id) }}" class="row g-2" data-confirm="Delete {{ device.name }} and ALL its backups permanently?">
+          {{ csrf() }}
+          <div class="col-8"><input class="form-control form-control-sm" name="confirm_name" placeholder="Type {{ device.name }} to confirm"></div>
+          <div class="col-4"><button class="btn btn-sm btn-danger w-100">Delete</button></div>
+        </form>
+        <div class="form-text">Prefer <em>Disable</em> to keep backup history.</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header">Recent jobs</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>#</th><th>Created</th><th>Type</th><th>Status</th><th>Try</th><th>Message</th></tr></thead>
+        <tbody>
+        {% for j in jobs %}
+          <tr><td>{{ j.id }}</td><td>{{ j.created_at|localdt }}</td><td>{{ j.job_type }}</td>
+            <td><span class="badge text-bg-{{ badge(j.status) }}" {% if j.is_active %}data-job-id="{{ j.id }}"{% endif %}>{{ j.status }}</span></td>
+            <td>{{ j.attempt }}/{{ j.max_attempts }}</td><td class="small">{{ j.message or '' }}</td></tr>
+        {% else %}<tr><td colspan="6" class="text-muted">No jobs yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </div>
+    <div class="card"><div class="card-header">Recent backups</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Time</th><th>Type</th><th>Status</th><th>Change</th><th>Size</th><th></th></tr></thead>
+        <tbody>
+        {% for v in versions %}
+          <tr><td>{{ v.created_at|localdt }}</td><td>{{ v.config_type }}</td><td>{{ status_badge(v.status) }}</td>
+            <td>{{ v.change_summary or v.error_message or '' }}</td><td>{{ v.file_size|filesize }}</td>
+            <td class="text-nowrap">{% if v.status == 'success' %}
+              {% if can('config.view') %}<a href="{{ url_for('backups.view', version_id=v.id) }}">view</a>{% endif %}
+              {% if can('backup.download') %}<a class="ms-2" href="{{ url_for('backups.download', version_id=v.id) }}">download</a>{% endif %}
+            {% endif %}</td></tr>
+        {% else %}<tr><td colspan="6" class="text-muted">No backups yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

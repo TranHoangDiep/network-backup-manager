@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, pagination %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Backup History{% if device %}: {{ device.name }}{% endif %}</h1>
+  {% if device and can('config.view') %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('backups.diff', device_id=device.id) }}">Compare versions</a>{% endif %}
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-3"><select class="form-select form-select-sm" name="device_id">
+    <option value="">All devices</option>
+    {% for d in devices %}<option value="{{ d.id }}" {{ 'selected' if filters.get('device_id') == d.id|string }}>{{ d.name }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-2"><select class="form-select form-select-sm" name="status">
+    <option value="">Any status</option>
+    {% for s in ['success', 'failed', 'skipped'] %}<option value="{{ s }}" {{ 'selected' if filters.get('status') == s }}>{{ s }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-2"><select class="form-select form-select-sm" name="config_type">
+    <option value="">Any type</option>
+    {% for t in ['running', 'startup'] %}<option value="{{ t }}" {{ 'selected' if filters.get('config_type') == t }}>{{ t }}</option>{% endfor %}
+  </select></div>
+  <div class="col-md-2 form-check pt-1 ms-2"><input class="form-check-input" type="checkbox" name="changed" value="1" id="changed" {{ 'checked' if filters.get('changed') == '1' }}>
+    <label class="form-check-label" for="changed">Changed only</label></div>
+  <div class="col-md-1"><button class="btn btn-sm btn-outline-primary w-100">Filter</button></div>
+</form>
+<div class="table-responsive">
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>Backup time</th><th>Device</th><th>Method</th><th>Type</th><th>Status</th><th>Changed</th><th>SHA-256</th><th>Size</th><th>Error / note</th><th></th></tr></thead>
+  <tbody>
+  {% for v in page.items %}
+    <tr><td class="text-nowrap">{{ v.created_at|localdt }}</td>
+      <td><a href="{{ url_for('devices.detail', device_id=v.device_id) }}">{{ v.device.name }}</a></td>
+      <td>{{ v.backup_method|upper }}</td><td>{{ v.config_type }}</td><td>{{ status_badge(v.status) }}</td>
+      <td>{% if v.status == 'success' %}{{ 'changed' if v.changed else 'unchanged' }}{% endif %}</td>
+      <td><code class="small" title="{{ v.config_hash or '' }}">{{ (v.config_hash or '')[:12] }}</code></td>
+      <td>{{ v.file_size|filesize }}</td>
+      <td class="small">{{ v.error_message or v.change_summary or '' }}</td>
+      <td class="text-nowrap">{% if v.status == 'success' %}
+        {% if can('config.view') %}<a href="{{ url_for('backups.view', version_id=v.id) }}">view</a>{% endif %}
+        {% if can('backup.download') %}<a class="ms-2" href="{{ url_for('backups.download', version_id=v.id) }}">download</a>{% endif %}
+      {% endif %}</td></tr>
+  {% else %}<tr><td colspan="10" class="text-muted">No backups recorded.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pagination(page, 'backups.history') }}
+{% endblock %}

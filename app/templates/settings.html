@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Settings</h1>
+  <form method="post" action="{{ url_for('settings.test_notification') }}">{{ csrf() }}
+    <button class="btn btn-sm btn-outline-secondary">Send test notification</button></form>
+</div>
+<form method="post" class="row g-3">
+  {{ csrf() }}
+  {% for group in groups %}
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">{{ group }}</div><div class="card-body row g-2">
+    {% for key, spec in schema.items() if spec[5] == group %}
+      {% set kind, label = spec[0], spec[4] %}
+      <div class="col-12">
+      {% if kind == 'bool' %}
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="{{ key }}" id="{{ key }}" {{ 'checked' if values[key] }}>
+          <label class="form-check-label" for="{{ key }}">{{ label }}</label></div>
+      {% elif kind.startswith('choice:') %}
+        <label class="form-label small" for="{{ key }}">{{ label }}</label>
+        <select class="form-select form-select-sm" name="{{ key }}" id="{{ key }}">
+          {% for option in kind.split(':', 1)[1].split(',') %}<option {{ 'selected' if values[key] == option }}>{{ option }}</option>{% endfor %}
+        </select>
+      {% elif kind == 'secret' %}
+        <label class="form-label small" for="{{ key }}">{{ label }}
+          {% if secret_set[key] %}<span class="badge text-bg-success">set</span>{% endif %}</label>
+        <input class="form-control form-control-sm" type="password" name="{{ key }}" id="{{ key }}" autocomplete="new-password"
+               placeholder="{{ 'Leave blank to keep' if secret_set[key] else '' }}">
+        {% if secret_set[key] %}<div class="form-check"><input class="form-check-input" type="checkbox" name="{{ key }}__clear" id="{{ key }}__clear">
+          <label class="form-check-label small" for="{{ key }}__clear">Remove</label></div>{% endif %}
+      {% else %}
+        <label class="form-label small" for="{{ key }}">{{ label }}{% if kind == 'int' %} <span class="text-muted">({{ spec[2] }}&ndash;{{ spec[3] }})</span>{% endif %}</label>
+        <input class="form-control form-control-sm" name="{{ key }}" id="{{ key }}" value="{{ values[key] }}" {% if kind == 'int' %}inputmode="numeric"{% endif %}>
+      {% endif %}
+      </div>
+    {% endfor %}
+    </div></div>
+  </div>
+  {% endfor %}
+  <div class="col-12"><button class="btn btn-primary">Save settings</button></div>
+</form>
+<p class="small text-muted mt-3">Network egress (ALLOWED_MGMT_NETWORKS, ALLOWED_PORTS) and SSH host-key enforcement are set by environment variables and cannot be changed here.</p>
+{% endblock %}
