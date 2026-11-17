@@ -4,6 +4,7 @@ from .aruba_aoscx import ArubaAOSCXDriver
 from .base import UnsupportedError
 from .cisco_ios import CiscoIOSDriver
 from .cisco_nxos import CiscoNXOSDriver
+from .cisco_sbs import CiscoSBSDriver
 from .fortinet_api import FortinetAPIDriver
 from .fortinet_ssh import FortinetSSHDriver
 
@@ -12,6 +13,7 @@ VENDORS = {"cisco": "Cisco", "fortinet": "Fortinet", "aruba": "Aruba"}
 PLATFORMS = {
     "cisco_ios": {"vendor": "cisco", "label": "Cisco IOS", "methods": {"ssh": CiscoIOSDriver}},
     "cisco_xe": {"vendor": "cisco", "label": "Cisco IOS-XE", "methods": {"ssh": CiscoIOSDriver}},
+    "cisco_sbs": {"vendor": "cisco", "label": "Cisco Small Business (CBS/SG)", "methods": {"ssh": CiscoSBSDriver}},
     "cisco_nxos": {"vendor": "cisco", "label": "Cisco NX-OS", "methods": {"ssh": CiscoNXOSDriver}},
     "fortinet": {"vendor": "fortinet", "label": "Fortinet FortiOS",
                  "methods": {"api": FortinetAPIDriver, "ssh": FortinetSSHDriver}},

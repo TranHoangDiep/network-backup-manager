@@ -8,6 +8,7 @@ from app.drivers.base import (AuthenticationError, ConnectionTarget, ConnectionT
                               DriverOptions, HostKeyError, IncompleteConfigError, PermissionDeniedError)
 from app.drivers.cisco_ios import CiscoIOSDriver
 from app.drivers.cisco_nxos import CiscoNXOSDriver
+from app.drivers.cisco_sbs import CiscoSBSDriver, CiscoSBSSH, _NoAuthClient
 
 from .conftest import CISCO_RUNNING
 
@@ -191,3 +192,43 @@ def test_fortinet_ssh_never_changes_console(monkeypatch):
         conn.disable_paging()
     conn._output_mode = "standard"
     assert conn.disable_paging() == ""
+
+
+SBS_RUNNING = """config-file-header
+SW-01
+v4.1.3.36 / RLSB4.1.3_951_191_247
+CLI v1.0
+set system mode switch
+!
+hostname SW-01
+!
+interface gigabitethernet1
+ description uplink
+exit
+ip default-gateway 10.4.24.254
+"""
+
+
+def test_sbs_accepts_config_without_end_trailer(tmp_path):
+    result = make_driver(CiscoSBSDriver, tmp_path=tmp_path).validate_output("running", SBS_RUNNING)
+    assert result.status == "success" and result.content == SBS_RUNNING
+
+
+def test_sbs_rejects_ios_style_or_truncated_output(tmp_path):
+    driver = make_driver(CiscoSBSDriver, tmp_path=tmp_path)
+    with pytest.raises(IncompleteConfigError, match="config-file-header"):
+        driver.validate_output("running", CISCO_RUNNING)  # valid IOS config, wrong OS
+    with pytest.raises(IncompleteConfigError, match="hostname"):
+        driver.validate_output("running", SBS_RUNNING.replace("hostname SW-01", ""))
+    with pytest.raises(IncompleteConfigError):
+        driver.validate_output("running", "% Unrecognized command\n")
+
+
+def test_sbs_ssh_layer_uses_no_password_auth():
+    assert isinstance(CiscoSBSSH._get_ssh_client_instance(None), _NoAuthClient)
+
+
+def test_legacy_ssh_rsa_host_key_enabled_last():
+    import paramiko
+    assert paramiko.Transport._preferred_keys[-1] == "ssh-rsa" and "ssh-rsa" in paramiko.RSAKey.HASHES
+    assert paramiko.Transport._preferred_keys.index("rsa-sha2-512") < paramiko.Transport._preferred_keys.index("ssh-rsa")

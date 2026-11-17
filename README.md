@@ -96,6 +96,8 @@ Login protection: account lockout after 5 failures for 15 min, plus a per-IP rat
 
 **Cisco IOS / IOS-XE** (`cisco_ios`, `cisco_xe`): runs `show running-config` and `show startup-config`. Netmiko sends `terminal length 0` and `terminal width 511`, which are session-only settings. Privileged EXEC (`#`) is **required**, because at privilege < 15 `show running-config` returns a silently partial config. The driver enters enable mode with the enable password if one is set. A config is accepted only if it has no `% Invalid/Authorization` errors and no `--More--`, ends with `end`, and contains `hostname` or `version`. A missing startup-config is recorded as `skipped`.
 
+**Cisco Small Business / Business** (`cisco_sbs`, CBS250/350, SG300/350): these switches authenticate inside the CLI (`User Name:` / `Password:`) instead of at the SSH layer, so use this platform, not Cisco IOS. Runs `show running-config` and `show startup-config`. The output starts with `config-file-header` and has no `end` trailer. Needs a privilege-15 account (prompt `#`). Not supported when the switch has `ip ssh password-auth` enabled.
+
 **Cisco NX-OS** (`cisco_nxos`): runs `show running-config` and `show startup-config`. NX-OS output does not end with `end`, so validation checks for `version` and `hostname`/`switchname` lines instead. Use a `network-admin` role; `network-operator` hides some sections.
 
 **FortiGate REST API** (preferred): `/api/v2/monitor/system/config/backup` with `scope=global`, or `scope=vdom&vdom=X` when a VDOM is set on the device.
