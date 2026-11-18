@@ -174,18 +174,30 @@ fieldset legend { font-weight: 650; color: var(--app-text); border-bottom: 1px s
 /* --------------------------------------------------------------- auth --- */
 .app-auth {
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 10% -10%, #c7d2fe 0%, transparent 60%),
-              radial-gradient(900px 500px at 110% 110%, #a5f3fc 0%, transparent 55%), #f1f5f9;
+  background: linear-gradient(rgba(255, 255, 255, .12), rgba(255, 255, 255, .12)),
+              url("../img/login-bg.jpg") center / cover no-repeat fixed #eef4f1;
 }
 .auth-main { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
-.auth-main > .alert { width: 100%; max-width: 400px; }
-.auth-card { width: 100%; max-width: 400px; background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(15, 23, 42, .1); padding: 2.25rem; }
-.auth-logo {
-  width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; margin: 0 auto 1rem;
-  background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; font-size: 1.6rem;
+.auth-main > .alert { width: 100%; max-width: 440px; }
+.auth-card {
+  width: 100%; max-width: 440px; padding: 2rem 2.25rem 1.75rem; border-radius: 22px;
+  background: rgba(255, 255, 255, .94); border: 1px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 20px 60px rgba(15, 40, 30, .18);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
+.auth-brand { display: block; height: 64px; width: auto; margin: 0 auto 1.1rem; }
+.auth-sub { color: var(--app-muted); }
+.auth-card .form-label { font-weight: 600; }
 .auth-card .input-group-text { background: #f8fafc; border-color: #d9dee7; color: var(--app-muted); }
-.auth-card .btn-primary { padding: .6rem; }
+.auth-card .form-control { border-color: #d9dee7; }
+.auth-card .form-control:focus { border-color: #1f9d4d; box-shadow: 0 0 0 .2rem rgba(31, 157, 77, .18); }
+.pw-toggle { cursor: pointer; }
+.pw-toggle:hover { color: #1e293b; }
+.auth-card .btn-primary {
+  padding: .65rem; font-weight: 600; --bs-btn-bg: #1f9d4d; --bs-btn-border-color: #1f9d4d; --bs-btn-hover-bg: #178040;
+  --bs-btn-hover-border-color: #178040; --bs-btn-active-bg: #12693a; --bs-btn-active-border-color: #12693a; --bs-btn-disabled-bg: #1f9d4d;
+}
+.auth-note { color: var(--app-muted); }
 
 /* ------------------------------------------------------- config viewer --- */
 .config-view { background: #0f172a; color: #e2e8f0; font-size: .8rem; max-height: 75vh; overflow: auto; white-space: pre; border-radius: var(--app-radius); padding: 1rem !important; border: 0 !important; }

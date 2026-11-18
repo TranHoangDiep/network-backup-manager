@@ -2,23 +2,24 @@
 {% block title %}Sign in &middot; {{ APP_NAME }}{% endblock %}
 {% block content %}
 <div class="auth-card">
-  <div class="auth-logo"><i class="bi bi-hdd-network"></i></div>
+  <img class="auth-brand" src="{{ url_for('static', filename='img/logo.png') }}" alt="AgriS">
   <h1 class="h4 text-center fw-bold mb-1">{{ APP_NAME }}</h1>
-  <p class="text-center text-muted small mb-4">Sign in to manage network configuration backups</p>
-  <form method="post" autocomplete="off">
+  <p class="text-center small mb-2 auth-sub">Sign in to manage network configuration backups</p>
+    <form method="post" autocomplete="off">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="form-label" for="username">Username</label>
     <div class="input-group mb-3">
       <span class="input-group-text"><i class="bi bi-person"></i></span>
-      <input class="form-control" id="username" name="username" required autofocus maxlength="64">
+      <input class="form-control" id="username" name="username" placeholder="Enter your username" required autofocus maxlength="64">
     </div>
     <label class="form-label" for="password">Password</label>
     <div class="input-group mb-4">
       <span class="input-group-text"><i class="bi bi-lock"></i></span>
-      <input class="form-control" id="password" name="password" type="password" required>
+      <input class="form-control" id="password" name="password" type="password" placeholder="Enter your password" required>
+      <button class="input-group-text pw-toggle" type="button" data-toggle-password="password" aria-label="Show password"><i class="bi bi-eye-slash"></i></button>
     </div>
-    <button class="btn btn-primary w-100">Sign in</button>
+    <button class="btn btn-primary w-100">Sign in <i class="bi bi-box-arrow-in-right ms-1"></i></button>
   </form>
+  <p class="auth-note small text-center mt-4 mb-0"><i class="bi bi-shield-check me-1"></i>Internal use only. All actions are audited.</p>
 </div>
-<p class="text-muted small mt-4 mb-0"><i class="bi bi-shield-lock me-1"></i>Internal use only. All actions are audited.</p>
 {% endblock %}

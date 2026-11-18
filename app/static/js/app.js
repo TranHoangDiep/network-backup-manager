@@ -9,6 +9,17 @@
     });
   });
 
+  // Show/hide password buttons
+  document.querySelectorAll("[data-toggle-password]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var input = document.getElementById(button.getAttribute("data-toggle-password"));
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      button.querySelector("i").className = show ? "bi bi-eye" : "bi bi-eye-slash";
+      button.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+  });
+
   function toggle(el, show) { if (el) { el.classList.toggle("d-none", !show); } }
 
   // ------------------------------------------------------- device form ---
